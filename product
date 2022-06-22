@@ -1,0 +1,282 @@
+package JDBC3;
+import java.io.BufferedReader;
+
+import java.io.InputStreamReader;
+import java.sql.*;
+public class productManager {
+	public static void main(String []args) {
+		apk app=new apk();
+		app.productAPK();
+
+		
+	}
+}
+class apk extends Menu{
+	apk(){
+		try {
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			conn=DriverManager.getConnection("jdbc:mysql://localhost:3306","root","iotiot");
+			stmt=conn.createStatement();
+			String sql="create database if not exists productD;";
+			String use="use productD;";
+			String sql1="create table if not exists product(number int(4) auto_increment primary key,"
+					+ "product varchar(10),price int); ";
+			stmt.execute(sql);
+			stmt.execute(use);
+			stmt.execute(sql1);
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void productAPK(){
+		try {
+			while(start==true) {
+				
+				System.out.println("Product Manager System");
+				System.out.println("[1]--EXIT");
+				System.out.println("[2]--insert");
+				System.out.println("[3]--revise");
+				System.out.println("[4]--delete");
+				System.out.println("[5]--serch");
+				System.out.println("[6]--showAll");
+				
+				switch(Integer.parseInt(ser.readLine())) {
+					case 1:
+						start=false;
+						clear();
+						System.out.println("EXIT");
+						break;
+					case 2:
+						clear();
+						insert();
+						break;
+					case 3:
+						clear();
+						revise();
+						break;
+					case 4:
+						clear();
+						delete();
+						break;
+					case 5:
+						clear();
+						serch();
+						break;
+					case 6:
+						clear();
+						showAll();
+						break;
+					default:
+						loading("retry put in Integer");
+						break;
+				}
+			}
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+}
+}
+abstract class Menu extends Thread{
+	Connection conn=null;
+	Statement stmt=null;
+	ResultSet rs=null;
+	PreparedStatement pstmt=null;
+	boolean start=true;
+	BufferedReader ser=new BufferedReader(new InputStreamReader(System.in));
+	
+	public void insert(){
+		String in="insert into product(product,price)values(?,?);";
+		try {
+		System.out.print("what do you register to product-->");
+		String product=ser.readLine();
+		System.out.print("how much is it-->");
+		int price=Integer.parseInt(ser.readLine());
+		pstmt=conn.prepareStatement(in);
+		pstmt.setString(1,product);
+		pstmt.setInt(2, price);
+		pstmt.executeUpdate();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		loading("uploading");
+	}
+	
+	public void revise() {
+		String sql=null;
+		try {
+			int num=0;
+			int number=0;
+			boolean b=true;
+			int choice=0;
+			int result=0;
+			
+			while(b==true) {
+				System.out.println("what do you revise product number--↓");
+				num=Integer.parseInt(ser.readLine());
+			
+			pstmt=conn.prepareStatement("select*from product where number=?;");
+			pstmt.setInt(1,num);
+			rs=pstmt.executeQuery();
+			rs.next();
+			try {
+			 number=rs.getInt("number");
+			 b=false;
+			}catch(SQLException e) {
+				System.out.println("retry");
+			}
+			}
+			if(number!=num) {
+				System.out.println("none product");
+			}
+			else if(number==num) {
+			boolean a=true;
+				while(a==true) {
+					System.out.println("product revise name or price");
+					System.out.println("[1]--product");
+					System.out.println("[2]--price");
+					choice=Integer.parseInt(ser.readLine());
+					if(choice<0&&choice>3) {
+						System.out.println("retry");
+				}else if(choice==1||choice==2) {
+					a=false;
+				}
+				}
+				if(choice==1) {
+					System.out.println("what do you change by product name");
+					String name=ser.readLine();
+					sql="update product set product = ? where number=?;";
+					pstmt=conn.prepareStatement(sql);
+					pstmt.setString(1,name);
+					pstmt.setInt(2, num);
+					result=pstmt.executeUpdate();
+					if(result>0) {
+						System.out.println("update success");
+					}
+					else if(result<0){
+						System.out.println("update faile");
+					}
+				}
+				else if(choice==2) {
+					System.out.println("what do you change by price");
+					int price=Integer.parseInt(ser.readLine());
+					sql="update product set price= ? where number= ?;";
+					pstmt=conn.prepareStatement(sql);
+					pstmt.setInt(1, price);
+					pstmt.setInt(2,num);
+					result=pstmt.executeUpdate();
+					if(result>0) {
+						System.out.println("update success");
+					}else if(result<0) {
+						System.out.println("update faile");
+					}
+				}			
+			}
+			loading("update");
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void delete() {
+		try {
+		System.out.println("what do you delete by product number");
+		int num=Integer.parseInt(ser.readLine());
+		boolean a=false;
+		rs=stmt.executeQuery("select*from product;");
+		while(rs.next()) {
+			int number=rs.getInt("number");
+			if((num==number)==false) {
+				a=false;
+			}else if(num==number){
+				a=true;
+				break;
+			}
+			
+		}
+		if(a==true) {
+			String sql="delete from product where number=?;";
+			pstmt=conn.prepareStatement(sql);
+			pstmt.setInt(1, num);
+			pstmt.executeUpdate();
+		}
+		else if(a==false) {
+			System.out.println("none product");
+		}
+		setnumber();
+		loading("delete now");
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	public void serch() {
+		try {
+		System.out.println("what do you serch by product name");
+		String serch=ser.readLine();
+		rs=stmt.executeQuery("select*from product;");
+		while(rs.next()) {
+			String product=rs.getString("product");
+			if(serch==product) {
+				int a=rs.getInt("number");
+				String b=rs.getString("product");
+				int c=rs.getInt("price");
+				System.out.println("번호:"+a+"\r품명:"+b+"\r가격:"+c);
+				System.out.println();
+			}
+		}
+		loading("go a back");
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void showAll() {
+		try {
+		System.out.println("Product all");
+		rs=stmt.executeQuery("select*from product;");
+		while(rs.next()) {
+			int a=rs.getInt("number");
+			String b=rs.getString("product");
+			int c=rs.getInt("price");
+			System.out.println("번호:"+a+"\t품명:"+b+"\t가격:"+c);
+		}
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		loading("go a back");
+	}
+	public void loading(String a) {
+		try {
+			if(a==null) {
+				a="loding";
+			}
+			System.out.print(a);
+			for(int l=0; l<5; l++) {
+				System.out.print(".");
+				Thread.sleep(1000);
+			}System.out.println();
+			clear();
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void clear() {
+		for(int i=0; i<100; i++) {
+			System.out.println();
+		}
+	}
+	public void setnumber() {
+		try {
+			String set="set @a=0;";
+			String update="update product set product.number=@a:=@a+1;";
+			stmt.execute(set);
+			stmt.execute(update);
+			rs=stmt.executeQuery("select @a;");
+			rs.next();
+			int inc=rs.getInt("@a");
+			inc=inc+1;
+			String increment="alter table product auto_increment="+inc+";";
+			stmt.execute(increment);
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+}
